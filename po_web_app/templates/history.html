@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="th">
+
+
+<head>
+    <meta charset="UTF-8">
+    <title>ประวัติไฟล์ที่เคยอัปโหลด</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
+</head>
+<body class="p-4">
+    <h3 class="mb-4">📁 ประวัติไฟล์ที่เคยอัปโหลด</h3>
+    <a href="/" class="btn btn-secondary mb-3">← กลับหน้าอัปโหลดล่าสุด</a>
+
+    <h4 class="mb-3">➕ เพิ่มรายการใหม่ (ไม่ต้องอัปโหลดไฟล์)</h4>
+    <form method="POST" action="/add_manual_entry" class="row g-2 mb-4">
+        <div class="col-md-2">
+            <input list="item-options" name="ชื่อเวชภัณฑ์" class="form-control form-control-sm" placeholder="ชื่อเวชภัณฑ์" required>
+            <datalist id="item-options">
+                {% for item in item_options %}
+                <option value="{{ item }}">
+                {% endfor %}
+            </datalist>
+        </div>
+        <div class="col-md-1">
+            <input type="number" name="ปริมาณจัดซื้อ" class="form-control form-control-sm" placeholder="จำนวน" required>
+        </div>
+        <div class="col-md-1">
+            <input type="text" name="หน่วยนับ" class="form-control form-control-sm" placeholder="หน่วย" required>
+        </div>
+        <div class="col-md-2">
+            <input list="company-options" name="ชื่อบริษัท" class="form-control form-control-sm" placeholder="ชื่อบริษัท" required>
+            <datalist id="company-options">
+                {% for company in company_options %}
+                <option value="{{ company }}">
+                {% endfor %}
+            </datalist>
+        </div>
+        <div class="col-md-2">
+            <button type="submit" class="btn btn-sm btn-success">✅ เพิ่มรายการใหม่</button>
+        </div>
+    </form>
+
+
+
+    {% for file in all_data %}
+        <h5 class="mt-4">{{ file['filename'] }}</h5>
+
+        <form method="POST" action="/add_entry" class="row g-2 mb-3">
+            <input type="hidden" name="filename" value="{{ file['filename'] }}">
+            <div class="col-md-2">
+                <input list="item-options" name="ชื่อเวชภัณฑ์" class="form-control form-control-sm" placeholder="ชื่อเวชภัณฑ์" required>
+                <datalist id="item-options">
+                    {% for item in item_options %}
+                    <option value="{{ item }}">
+                    {% endfor %}
+                </datalist>
+            </div>
+            <div class="col-md-1">
+                <input type="number" name="ปริมาณจัดซื้อ" class="form-control form-control-sm" placeholder="จำนวน" required>
+            </div>
+            <div class="col-md-1">
+                <input type="text" name="หน่วยนับ" class="form-control form-control-sm" placeholder="หน่วย" required>
+            </div>
+            <div class="col-md-2">
+                <input list="company-options" name="ชื่อบริษัท" class="form-control form-control-sm" placeholder="ชื่อบริษัท" required>
+                <datalist id="company-options">
+                    {% for company in company_options %}
+                    <option value="{{ company }}">
+                    {% endfor %}
+                </datalist>
+            </div>
+            <div class="col-md-2">
+                <button type="submit" class="btn btn-sm btn-success">➕ เพิ่มรายการใหม่</button>
+            </div>
+        </form>
+
+
+        <button class="btn btn-outline-dark btn-sm mb-2" onclick="printTable('{{ loop.index0 }}')">🖨️ พิมพ์รายการนี้</button>
+        <table class="table table-bordered table-sm">
+        <table id="table-{{ loop.index0 }}" class="table table-bordered table-sm">
+            <thead class="table-light">
+                <tr>
+                    <th>PO Number</th>
+                    <th>ชื่อเวชภัณฑ์</th>
+                    <th>ปริมาณจัดซื้อ</th>
+                    <th>หน่วยนับ</th>
+                    <th>ชื่อบริษัท</th>
+                    <th>สถานะการจัดส่ง</th>
+                    <th>ค้างส่ง</th>
+                    <th>บันทึก</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in file['records'] %}
+                {% set row_id = loop.index0 %}
+                <tr>
+                    <td>{{ row['PO Number'] }}</td>
+                    <td>{{ row['ชื่อเวชภัณฑ์'] }}</td>
+                    <td>{{ row['ปริมาณจัดซื้อ'] }}</td>
+                    <td>{{ row['หน่วยนับ'] }}</td>
+                    <td>{{ row['ชื่อบริษัท'] }}</td>
+                    <td class="{% if row['สถานะการจัดส่ง'] == 'ส่งแล้ว' %}table-success{% elif row['สถานะการจัดส่ง'] == 'ยกเลิก' %}table-warning{% elif row['สถานะการจัดส่ง'] == 'ค้างส่ง' %}table-danger{% endif %}">
+                        <form method="POST" action="/update_history_status">
+                            <input type="hidden" name="filename" value="{{ file['filename'] }}">
+                            <input type="hidden" name="row_id" value="{{ row_id }}">
+                            <select name="new_status" class="form-select form-select-sm status-select">
+                                <option value="ยังไม่ส่ง" {% if row['สถานะการจัดส่ง'] == 'ยังไม่ส่ง' %}selected{% endif %}>ยังไม่ส่ง</option>
+                                <option value="ส่งแล้ว" {% if row['สถานะการจัดส่ง'] == 'ส่งแล้ว' %}selected{% endif %}>ส่งแล้ว</option>
+                                <option value="ยกเลิก" {% if row['สถานะการจัดส่ง'] == 'ยกเลิก' %}selected{% endif %}>ยกเลิก</option>
+                                <option value="ค้างส่ง" {% if row['สถานะการจัดส่ง'] == 'ค้างส่ง' %}selected{% endif %}>ค้างส่ง</option>
+                            </select>
+                    </td>
+
+                    <td>
+                        <input type="number" name="pending_qty" class="form-control form-control-sm" style="width: 80px;" min="0" value="{{ row['ค้างส่ง'] }}">
+                    </td>
+
+                    <td>
+                        <button type="submit" class="btn btn-sm btn-primary">บันทึก</button>
+                        </form>
+                    </td>
+                    
+                    <td>
+                        <form method="POST" action="/delete_history_row" onsubmit="return confirm('คุณแน่ใจว่าต้องการลบรายการนี้?');">
+                            <input type="hidden" name="filename" value="{{ file['filename'] }}">
+                            <input type="hidden" name="po_number" value="{{ row['PO Number'] }}">
+                            <button type="submit" class="btn btn-sm btn-danger">ลบ</button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+
+        </table>
+    {% endfor %}
+
+<script>
+function updateSelectColor(select) {
+    select.classList.remove('bg-success', 'bg-warning', 'bg-danger', 'bg-secondary', 'text-white');
+
+    const value = select.value;
+    if (value === 'ส่งแล้ว') {
+        select.classList.add('bg-success', 'text-white');
+    } else if (value === 'ยกเลิก') {
+        select.classList.add('bg-warning');
+    } else if (value === 'ค้างส่ง') {
+        select.classList.add('bg-danger', 'text-white');
+    } else {
+        select.classList.add('bg-secondary', 'text-white');
+    }
+}
+
+document.querySelectorAll('.status-select').forEach(select => {
+    updateSelectColor(select); // เรียกตอนโหลด
+    select.addEventListener('change', () => updateSelectColor(select)); // เรียกตอนเปลี่ยนค่า
+});
+</script>
+
+
+<script>
+function printTable(tableId) {
+    const table = document.getElementById('table-' + tableId);
+    const newWin = window.open('', '', 'width=900,height=600');
+    newWin.document.write('<html><head><title>พิมพ์รายการ</title>');
+    newWin.document.write('<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">');
+    newWin.document.write('</head><body class="p-3">');
+    newWin.document.write('<h4>รายการจากไฟล์</h4>');
+    newWin.document.write(table.outerHTML);
+    newWin.document.write('</body></html>');
+    newWin.document.close();
+    newWin.print();
+}
+</script>
+
+
+
+</body>
+</html>
+
+
+
+</body>
+</html>
